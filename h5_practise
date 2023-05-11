@@ -1,0 +1,68 @@
+import h5py
+import numpy as np
+import matplotlib.pyplot as plt
+import h5py
+""" 
+with h5py.File('img.h5', 'r') as f:
+    for key in f.keys():
+        if key.startswith('bright_'):
+            print(key)
+
+
+import h5py
+
+with h5py.File('img.h5', 'r') as f:
+    for key in f.keys():
+        if key.startswith ('bright_'):
+            print(key, end = ', ') """
+            
+
+def display_images_grid(keys, file_path, rows=4, cols=5, colormap='viridis'):
+    with h5py.File(file_path, 'r') as f:
+        fig, axes = plt.subplots(rows, cols, figsize=(15, 10))
+
+        for idx, key in enumerate(keys[:rows*cols]):
+            image_data = f[key][()]
+            ax = axes[idx // cols, idx % cols]
+            ax.imshow(image_data, cmap=colormap)
+            ax.set_title(key)
+            ax.axis('off')
+
+        plt.tight_layout()
+        plt.show()
+
+def get_bright_keys(file_path):
+    keys = []
+    with h5py.File(file_path, 'r') as f:
+        for key in f.keys():
+            if key.startswith('bright_'):
+                keys.append(key)
+    return keys
+
+def print_dataset_dimensions(keys, file_path):
+    with h5py.File(file_path, 'r') as f:
+        for key in keys:
+            dataset = f[key]
+            print(f"{key}: {dataset.shape}")
+         
+def count_images(file_path, prefix='bright_'):
+    count = 0
+    with h5py.File(file_path, 'r') as f:
+        for key in f.keys():
+            if key.startswith(prefix):
+                count += 1
+    return count
+
+# Open the .h5 file in read mode
+with h5py.File('img.h5', 'r') as f:
+    # Print the number of items in the file
+    print("Number of items in the .h5 file:", len(f.keys()))
+
+
+""" file_path = 'img.h5'
+image_count = count_images(file_path, prefix='bright_')
+print(f"Number of images with 'bright_' prefix in the file: {image_count}") 
+
+bright_keys = get_bright_keys(file_path)
+# print_dataset_dimensions(bright_keys, file_path)
+display_images_grid(bright_keys, file_path, colormap='viridis')  # Change the colormap to your preference """

@@ -1,0 +1,7 @@
+import h5py
+
+filename = "img.h5"
+
+with h5py.File(filename, "r") as f:
+    # List all groups and datasets in the file
+    f.visit(lambda x: print(x))
