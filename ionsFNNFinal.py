@@ -14,21 +14,27 @@ print(str(device))
 class IonDataset(Dataset):
     def __init__(self, file_path):
         self.file_path = file_path
+        self.data = []
+        self.labels = []
 
         with h5py.File(self.file_path, 'r') as f:
             self.keys = sorted(list(f.keys()), key=lambda x: int(x.split('_')[-1]))
-            self.length = len(self.keys)
+
+            for key in self.keys:
+                img = f[key][()]
+                img = torch.tensor(img, dtype=torch.float32).unsqueeze(0)
+                label = 1 if 'bright' in key else 0
+
+                self.data.append(img)
+                self.labels.append(torch.tensor(label, dtype=torch.long))
+
+        self.length = len(self.keys)
 
     def __len__(self):
         return self.length
 
     def __getitem__(self, idx):
-        with h5py.File(self.file_path, 'r') as f:
-            key = self.keys[idx]
-            img = f[key][()]
-            img = torch.tensor(img, dtype=torch.float32).unsqueeze(0)
-            label = 1 if 'bright' in key else 0
-            return img, torch.tensor(label, dtype=torch.long)
+        return self.data[idx], self.labels[idx]
 
 
 class FFNN(nn.Module):
@@ -47,7 +53,7 @@ class FFNN(nn.Module):
 hyperparameter_grid = {
     'learning_rate': [0.01, 0.001, 0.0001],
     'batch_size': [32, 64, 128],
-    'num_epochs': [5, 10, 15],
+    'num_epochs': [50, 100, 150],
 }
 
 def train_and_validate_model(model, train_loader, val_loader, device, criterion, optimizer, scheduler, num_epochs):
@@ -140,11 +146,11 @@ model = FFNN().to(device)
 weights = torch.tensor([1.0, 3.0]).to(device)  # Adjust the weights as needed
 criterion = nn.CrossEntropyLoss(weight=weights)
 
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.Adam(model.parameters(), lr=0.0001)
 scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2, verbose=True)
-num_epochs = 10
+num_epochs = 100
 best_val_loss = float('inf')
-early_stopping_patience = 3
+early_stopping_patience = 10
 no_improvement_epochs = 0
 
 for epoch in range(num_epochs):
@@ -207,7 +213,7 @@ for epoch in range(num_epochs):
     current_val_loss = val_loss / len(val_loader)
     if current_val_loss < best_val_loss:
         best_val_loss = current_val_loss
-        torch.save(model.state_dict(), 'ion_detection_ffnn_best2.pth')
+        torch.save(model.state_dict(), 'ion_detection_ffnn_bestnewV1.pth')
         no_improvement_epochs = 0
     else:
         no_improvement_epochs += 1
@@ -232,7 +238,7 @@ for epoch in range(num_epochs):
 torch.save(model.state_dict(), 'ion_detection_ffnn.pth')
 # ------------------------------------------------------------------
 model = FFNN()
-model.load_state_dict(torch.load('ion_detection_ffnn_best.pth'))
+model.load_state_dict(torch.load('ion_detection_ffnn_bestnewV1.pth'))
 model.eval()
 model.to(device)
 
