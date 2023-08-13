@@ -38,17 +38,18 @@ class IonDataset(Dataset):
 
 
 
-class FFNN(nn.Module):
+class OldFFNN(nn.Module):
     def __init__(self):
-        super(FFNN, self).__init__()
-        self.fc1 = nn.Linear(5 * 5, 32)
-        self.fc2 = nn.Linear(32, 2)
+        super(OldFFNN, self).__init__()
+        self.iffnn = nn.Linear(5 * 5, 32)
+        self.gffnn = nn.Linear(32, 2)
 
     def forward(self, x):
         x = x.view(-1, 5 * 5)
-        x = torch.relu(self.fc1(x))
-        x = self.fc2(x)
+        x = torch.relu(self.iffnn(x))
+        x = self.gffnn(x)
         return x
+
     
 data_file_path = 'C:/Users/Seiven/Desktop/MY_MLmodels/ions2/binary/cropped_ions.h5'
 dataset = IonDataset(data_file_path)
@@ -59,11 +60,11 @@ train_dataset, val_dataset = torch.utils.data.random_split(dataset, [train_size,
 train_loader = DataLoader(train_dataset, batch_size=1000, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=1000, shuffle=True)
 
-model = FFNN().to(device)
+model = OldFFNN().to(device)
 weights = torch.tensor([1.0, 3.5]).to(device)  # Adjust the weights as needed
 criterion = nn.CrossEntropyLoss(weight=weights)
 
-optimizer = optim.Adam(model.parameters(), lr=0.0001)
+optimizer = optim.Adam(model.parameters(), lr=0.001)
 scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2, verbose=True)
 num_epochs = 200
 best_val_loss = float('inf')
@@ -124,7 +125,7 @@ for epoch in range(num_epochs):
 
     if current_val_loss < best_val_loss:
         best_val_loss = current_val_loss
-        torch.save(model.state_dict(), 'best_model_V2.pth')
+        torch.save(model.state_dict(), 'best_model_V3.pth')
         no_improvement_epochs = 0
     else:
         no_improvement_epochs += 1
@@ -183,8 +184,8 @@ def count_combined_states(ion_states, num_ions=4):
     return combined_states
 
 # Load the model
-model = FFNN().to(device)
-model.load_state_dict(torch.load('best_model_V2.pth'))
+model = OldFFNN().to(device)
+model.load_state_dict(torch.load('best_model_V3.pth'))
 model.eval()
 
 # Create dataset for predictions
