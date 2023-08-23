@@ -39,26 +39,38 @@ N_o = 1
 
 class IonImagesDataset(Dataset):
     def __init__(self, file_paths, labels, ion_positions=[0, 1, 2, 3]):
-        all_images = []
-        all_categories = []
+        images = []
+        categories = []
 
         for file_path, label in zip(file_paths, labels):
             with h5py.File(file_path, "r") as f:
-                # Extract all keys that match the pattern
-                keys = [key for key in f.keys() if re.match(rf"{label}_\d+_ion_", key)]
+                print(f"h5 file has {len(f.keys())} keys.")  # Print the number of keys
 
-                for key in keys:
-                    ion_position = int(re.search(r"_ion_(\d+)", key).group(1))
-                    if ion_position in ion_positions:
-                        ion_image = torch.tensor(f[key], dtype=torch.float32).view(L_x, L_y) - 200
-                        all_images.append(ion_image)
-                        category = 0 if label == "dark" else 1
-                        all_categories.append(category)
+                # # Get the unique image numbers from the keys
+                # image_numbers = [int(re.search(r'(\d+)_ion_0', key).group(1)) for key in f.keys()]
+                
+                image_number = 0
+                # while image_number<100:
+                while True:
+                    try:
+                        image_tensors = []
+                        for ion_position in ion_positions:
+                            key = f"{label}_{image_number}_ion_{ion_position}"
+                            ion_image = np.array(f[key])  # Load data as a numpy array
+                            ion_image_tensor = torch.tensor(ion_image, dtype=torch.float32).view(L_x, L_y) -200  # Reshape the tensor
+                            image_tensors.append(ion_image_tensor)
 
-        self.images = torch.stack(all_images)
-        self.labels = torch.tensor(all_categories, dtype=torch.float32)
-
-
+                        # Concatenate the image tensors for all ion positions
+                        combined_image_tensor = torch.stack(image_tensors)
+                        images.append(combined_image_tensor[None,...])
+                        categories.append(torch.tensor([0,0,0,0],dtype=torch.float32)[:,None] if label == "dark" else torch.tensor([1,1,1,1],dtype=torch.float32)[:,None])
+                        
+                        image_number += 1
+                    except:
+                        break
+            
+        self.images = torch.concat(images,dim=0)
+        self.labels = torch.stack(categories)
 
         print("Total images:", len(self.images))  # Debug print
         print("Total labels:", len(self.labels))  # Debug print
