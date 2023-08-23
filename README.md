@@ -139,3 +139,35 @@ This class is an enhanced version of `MultiIonReadout`, but it's not used in the
 
 ### Summary:
 The model's architecture is designed to process images of ions and determine whether they represent bright or dark ions. It does this through a series of transformations (encoding) followed by a classification step. The custom layers provide flexibility in handling different ion positions, and the combination of encoding and classification allows the model to learn complex patterns in the data.
+
+
+
+some prints:
+
+# def visualize_images(dataset, title):
+#     fig, axes = plt.subplots(2, 2, figsize=(8, 8))
+#     fig.suptitle(title)
+#     axes = axes.flatten()  # Flatten the axes array
+#     for i in range(4):
+#         sample_idx = np.random.randint(len(dataset))
+#         print(sample_idx, len(dataset))
+#         images, labels = dataset[sample_idx]
+#         print(dataset[sample_idx])
+#         label = labels[0].item()  # Take the first element of the label tensor
+#         axes[i].imshow(images[i].squeeze().numpy(), cmap='gray')
+#         axes[i].set_title(f"Label: {label}")
+#         axes[i].axis('off')
+#     plt.show()
+
+
+# def check_data_distribution(dataset, dataset_name):
+#     labels_count = {0: 0, 1: 0}
+#     for _, labels in dataset:
+#         for label in labels.squeeze():  # Iterate through the batch of labels
+#             labels_count[label.item()] += 1
+#     print(f"{dataset_name} Labels Distribution: {labels_count}")
+
+# visualize_images(train_dataset, "Training Dataset")
+# visualize_images(val_dataset, "Validation Dataset")
+# check_data_distribution(train_dataset, "Training Dataset")
+# check_data_distribution(val_dataset, "Validation Dataset")

@@ -1,20 +1,24 @@
-import torch
-import h5py
-from torch import nn
-from torch.utils.data import DataLoader, TensorDataset, random_split
-from torch.optim import lr_scheduler
-import torch.nn.functional as F
-from torch.utils.data import ConcatDataset
-import numpy as np
-import random
-import copy
-from torch.utils.data import Dataset
-from torchinfo import summary
-from torch.optim import Adam
-from torch.utils.data import Subset
-import matplotlib.pyplot as plt
-import numpy as np
+import sys
 import re
+import h5py
+import copy
+import torch
+import random
+import torchvision
+import numpy as np
+import numpy as np
+from torch import nn
+from torch.optim import Adam
+from torchinfo import summary
+import torch.nn.functional as F
+import matplotlib.pyplot as plt
+from torch.utils.data import Subset
+from torch.optim import lr_scheduler
+from torch.utils.data import Dataset
+from torch.utils.data import ConcatDataset
+from torch.utils.tensorboard import SummaryWriter
+from torch.utils.data import DataLoader, TensorDataset, random_split
+
 
 #-------------------------------------------------------
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -34,65 +38,64 @@ N_o = 1
 
 
 class IonImagesDataset(Dataset):
-    def __init__(self, file_path, label, ion_positions=[0, 1, 2, 3]):
-        self.images = []
-        self.labels = []
+    def __init__(self, file_paths, labels, ion_positions=[0, 1, 2, 3]):
+        images = []
+        categories = []
 
-        with h5py.File(file_path, "r") as f:
-            print(f"h5 file has {len(f.keys())} keys.")  # Print the number of keys
+        for file_path, label in zip(file_paths, labels):
+            with h5py.File(file_path, "r") as f:
+                print(f"h5 file has {len(f.keys())} keys.")  # Print the number of keys
 
-            # Get the unique image numbers from the keys
-            image_numbers = set(int(re.search(r'(\d+)_ion_', key).group(1)) for key in f.keys())
+                # # Get the unique image numbers from the keys
+                # image_numbers = [int(re.search(r'(\d+)_ion_0', key).group(1)) for key in f.keys()]
+                
+                image_number = 0
+                # while image_number<100:
+                while True:
+                    try:
+                        image_tensors = []
+                        for ion_position in ion_positions:
+                            key = f"{label}_{image_number}_ion_{ion_position}"
+                            ion_image = np.array(f[key])  # Load data as a numpy array
+                            ion_image_tensor = torch.tensor(ion_image, dtype=torch.float32).view(L_x, L_y) -200  # Reshape the tensor
+                            image_tensors.append(ion_image_tensor)
 
-            for image_number in image_numbers:
-                image_tensors = []
-                for ion_position in ion_positions:
-                    key = f"{label}_{image_number}_ion_{ion_position}"
-                    ion_image = np.array(f[key])  # Load data as a numpy array
-                    ion_image_tensor = torch.tensor(ion_image, dtype=torch.float32).view(L_x, L_y)  # Reshape the tensor
-                    image_tensors.append(ion_image_tensor)
-
-                # Concatenate the image tensors for all ion positions
-                combined_image_tensor = torch.stack(image_tensors)
-                self.images.append(combined_image_tensor)
-                self.labels.append(0 if label == "dark" else 1)
+                        # Concatenate the image tensors for all ion positions
+                        combined_image_tensor = torch.stack(image_tensors)
+                        images.append(combined_image_tensor[None,...])
+                        categories.append(torch.tensor([0,0,0,0],dtype=torch.float32)[:,None] if label == "dark" else torch.tensor([1,1,1,1],dtype=torch.float32)[:,None])
+                        
+                        image_number += 1
+                    except:
+                        break
+            
+        self.images = torch.concat(images,dim=0)
+        self.labels = torch.stack(categories)
 
         print("Total images:", len(self.images))  # Debug print
         print("Total labels:", len(self.labels))  # Debug print
-
 
     def __len__(self):
         return len(self.images)
 
     def __getitem__(self, idx):
-        image_tensor = self.images[idx].unsqueeze(0)  # Add a channel dimension
-        label_tensor = torch.tensor([self.labels[idx]], dtype=torch.float).view(1, 1)
+        image_tensor = self.images[idx]  # Add a channel dimension
+        label_tensor = self.labels[idx] # Repeat the label for each ion position
         return image_tensor, label_tensor
 
 
+writer = SummaryWriter('runs/ion_images_experiment')
 
-# Separate datasets for dark and bright categories
-dark_dataset = IonImagesDataset(file_path_dark, label="dark")
-bright_dataset = IonImagesDataset(file_path_bright, label="bright")
+file_paths = [file_path_dark, file_path_bright]
+labels = ["dark", "bright"]
+dataset = IonImagesDataset(file_paths, labels)
 
-print(f"Dark dataset size: {len(dark_dataset)}")  # Print the size of the dark_dataset
-print(f"Bright dataset size: {len(bright_dataset)}")  # Print the size of the bright_dataset
+# Split the dataset into training and validation subsets
+train_size = int(0.8 * len(dataset))
+val_size = len(dataset) - train_size
+print(f"Train size: {train_size}, Validation size: {val_size}")  # Print the sizes of subsets
 
-# Split the dark and bright datasets into training and validation subsets
-dark_train_size = int(0.8 * len(dark_dataset))
-dark_val_size = len(dark_dataset) - dark_train_size
-print(f"Dark train size: {dark_train_size}, Dark val size: {dark_val_size}")  # Print the sizes of dark subsets
-
-bright_train_size = int(0.8 * len(bright_dataset))
-bright_val_size = len(bright_dataset) - bright_train_size
-print(f"Bright train size: {bright_train_size}, Bright val size: {bright_val_size}")  # Print the sizes of bright subsets
-
-dark_train_dataset, dark_val_dataset = random_split(dark_dataset, [dark_train_size, dark_val_size])
-bright_train_dataset, bright_val_dataset = random_split(bright_dataset, [bright_train_size, bright_val_size])
-
-# Combine dark and bright datasets for training and validation
-train_dataset = ConcatDataset([dark_train_dataset, bright_train_dataset])
-val_dataset = ConcatDataset([dark_val_dataset, bright_val_dataset])
+train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
 print(f"Train dataset size: {len(train_dataset)}")  # Print the size of the train_dataset
 print(f"Validation dataset size: {len(val_dataset)}")  # Print the size of the val_dataset
@@ -101,7 +104,6 @@ print(f"Validation dataset size: {len(val_dataset)}")  # Print the size of the v
 batch_size = min(1000, len(train_dataset)) # or choose a smaller value
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=False)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, drop_last=False)
-
 
 
 class IndexDependentDense(nn.Module):
@@ -250,70 +252,26 @@ class EnhancedMultiIonReadout(nn.Module):
         y = self.mir.classifier(y)
         return y
 
-device = torch.device("cpu")
+from torch.utils.tensorboard import SummaryWriter
 
+device = torch.device("cpu")
 
 encoder = Encoder(N, N_i, N_h)
 classifier = Classifier(N, N_h, N_o)
 model = MultiIonReadout(encoder, classifier)
-enhanced_model = EnhancedMultiIonReadout(model)
-
-
-###############################################################
-def print_sample_keys_and_labels(dataset, num_samples=5):
-    sample_indices = np.random.choice(len(dataset), num_samples, replace=False)
-    for global_idx in sample_indices:
-        # Determine the underlying IonImagesDataset object this index corresponds to
-        idx = global_idx
-        underlying_dataset = dataset
-        while isinstance(underlying_dataset, ConcatDataset):
-            dataset_idx, sample_idx = underlying_dataset.cumulative_sizes.index_right(idx)
-            underlying_dataset = underlying_dataset.datasets[dataset_idx]
-            idx = sample_idx
-        if isinstance(underlying_dataset, Subset):
-            underlying_dataset = underlying_dataset.dataset  # Get the underlying IonImagesDataset
-        key = underlying_dataset.keys[idx]  # Access the key using the corrected index
-        images, labels = dataset[global_idx]
-        print(f"Key: {key}, Labels: {labels.numpy()}")
-
-
-
-
-
-
-# def visualize_images(dataset, title):
-#     fig, axes = plt.subplots(2, 2, figsize=(8, 8))
-#     fig.suptitle(title)
-#     axes = axes.flatten()  # Flatten the axes array
-#     for i in range(4):
-#         sample_idx = np.random.randint(len(dataset))
-#         print(sample_idx, len(dataset))
-#         images, labels = dataset[sample_idx]
-#         print(dataset[sample_idx])
-#         label = labels[0].item()  # Take the first element of the label tensor
-#         axes[i].imshow(images[i].squeeze().numpy(), cmap='gray')
-#         axes[i].set_title(f"Label: {label}")
-#         axes[i].axis('off')
-#     plt.show()
-
-
-# def check_data_distribution(dataset, dataset_name):
-#     labels_count = {0: 0, 1: 0}
-#     for _, labels in dataset:
-#         for label in labels.squeeze():  # Iterate through the batch of labels
-#             labels_count[label.item()] += 1
-#     print(f"{dataset_name} Labels Distribution: {labels_count}")
-
-# visualize_images(train_dataset, "Training Dataset")
-# visualize_images(val_dataset, "Validation Dataset")
-# check_data_distribution(train_dataset, "Training Dataset")
-# check_data_distribution(val_dataset, "Validation Dataset")
+# enhanced_model = EnhancedMultiIonReadout(model)
 
 model = model.to(device)
-##############################################################
 
-N_epochs = 5
-lr = 1e-4
+# # Create a SummaryWriter
+# writer = SummaryWriter('runs/ion_images_experiment')
+
+# # Log model architecture (Optional)
+# images, _ = next(iter(train_loader))
+# writer.add_graph(model, images)
+
+N_epochs = 100
+lr = 1e-3
 optimizer = Adam(model.parameters(), lr=lr)
 schedule_params = {"factor": 1}
 schedule = lr_scheduler.ConstantLR(optimizer, **schedule_params)
@@ -321,32 +279,33 @@ log_every = 1
 
 # Training loop
 for epoch in range(N_epochs):
-    print(f"Epoch {epoch + 1}/{N_epochs}")
 
     total_train_loss = 0
-    for i, (inputs, labels) in enumerate(train_loader):
+    for (inputs, labels) in train_loader:
+    
         inputs, labels = inputs.to(device), labels.to(device)
-        
+
         optimizer.zero_grad()
         loss = model.bceloss(inputs, labels)
         loss.backward()
         optimizer.step()
-        
-        total_train_loss += loss.item()
 
-        if i % log_every == 0:  # Log every 'log_every' batches
-            print(f"Batch {i}/{len(train_loader)}, Loss: {loss.item()}")
+        # total_train_loss += loss.item()
 
-    avg_train_loss = total_train_loss / len(train_loader)
-    print(f"Average Training Loss for Epoch {epoch + 1}: {avg_train_loss}")
+    # avg_train_loss = total_train_loss / len(train_loader)
+    
+    
+    
+    sys.stdout.flush()
+    # writer.add_scalar('Training Loss', avg_train_loss, epoch)
 
     # Evaluation loop
     with torch.no_grad():
         total_loss = 0
         total_accuracy = 0
-        for i, (inputs, labels) in enumerate(val_loader):
+        for inputs, labels in val_loader:
             inputs, labels = inputs.to(device), labels.to(device)
-            
+
             loss = model.bceloss(inputs, labels)
             accuracy = model.accuracy(inputs, labels)
             total_loss += loss.item()
@@ -354,6 +313,10 @@ for epoch in range(N_epochs):
 
         avg_loss = total_loss / len(val_loader)
         avg_accuracy = total_accuracy / len(val_loader)
-        print(f"Validation Loss: {avg_loss}, Validation Accuracy: {avg_accuracy}")
-
-
+        # writer.add_scalar('Validation Loss', avg_loss, epoch)
+        # writer.add_scalar('Validation Accuracy', avg_accuracy, epoch)
+        
+    print("\r Epoch {}/{}, Training Loss = {}, Val Loss = {}, Val Acc = {}".format(epoch+1, N_epochs, loss.item(), avg_loss, avg_accuracy), end="")
+    
+# Close the writer
+# writer.close()
