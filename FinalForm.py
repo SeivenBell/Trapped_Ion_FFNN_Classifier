@@ -45,6 +45,7 @@ class IonImagesDataset(Dataset):
         for file_path, label in zip(file_paths, labels):
             with h5py.File(file_path, "r") as f:
                 print(f"h5 file has {len(f.keys())} keys.")  # Print the number of keys
+                print(f"h5 file has {f.keys()} keys.") 
 
                 # # Get the unique image numbers from the keys
                 # image_numbers = [int(re.search(r'(\d+)_ion_0', key).group(1)) for key in f.keys()]
@@ -64,7 +65,7 @@ class IonImagesDataset(Dataset):
                         combined_image_tensor = torch.stack(image_tensors)
                         images.append(combined_image_tensor[None,...])
                         categories.append(torch.tensor([0,0,0,0],dtype=torch.float32)[:,None] if label == "dark" else torch.tensor([1,1,1,1],dtype=torch.float32)[:,None])
-                        
+                    
                         image_number += 1
                     except:
                         break
@@ -74,6 +75,9 @@ class IonImagesDataset(Dataset):
 
         print("Total images:", len(self.images))  # Debug print
         print("Total labels:", len(self.labels))  # Debug print
+
+        print("Total images:", self.images.size())  # Debug print
+        print("Total labels:", self.labels.size())
 
     def __len__(self):
         return len(self.images)

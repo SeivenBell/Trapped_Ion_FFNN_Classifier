@@ -2,7 +2,7 @@ import h5py
 from matplotlib import pyplot as plt
 import numpy as np
 
-def visualize_category(file_path, category, num_samples=5):
+def visualize_category(file_path, category, num_samples=10):
     with h5py.File(file_path, "r") as f:
         all_keys = list(f.keys())
         category_keys = [key for key in all_keys if category in key]
@@ -18,4 +18,4 @@ def visualize_category(file_path, category, num_samples=5):
 
 # Example usage for the "halfpi" category:
 file_path = "C:/Users/Seiven/Desktop/MY_MLmodels/ions2/binary/cropped_ions.h5"
-visualize_category(file_path, "dark")
+visualize_category(file_path, "halfpi")

@@ -1,95 +1,122 @@
-import torch
-from torch import nn
-from torch.utils.data import DataLoader, TensorDataset, random_split
-from torch.optim import lr_scheduler
-import torch.nn.functional as F
-from torch.utils.data import ConcatDataset
-import numpy as np
-import copy
-from torch.utils.data import Dataset
-from torchinfo import summary
-from torch.optim import Adam
-import h5py
-import numpy as np
+import sys
 import re
-
-# bright_data = np.load("bright.npy")
-# dark_data = np.load("dark.npy")
-# bright_data = torch.from_numpy(bright_data) - 200
-# bright_label = torch.ones(*bright_data.shape[:-2], 1)
-# dark_data = torch.from_numpy(dark_data) - 200
-# dark_label = torch.zeros(*dark_data.shape[:-2], 1)
-
-# mixed_data = torch.cat([bright_data, dark_data], dim=0)
-# mixed_label = torch.cat([bright_label, dark_label], dim=0)
-
-# full_ds = TensorDataset(mixed_data, mixed_label)
-
-# val_ratio = 0.2
-# train_size = int((1 - val_ratio) * len(full_ds))
-# val_size = len(full_ds) - train_size
-# train_ds, val_ds = random_split(full_ds, [train_size, val_size])
-
-# batch_size = 1000
-# train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, drop_last=True)
-# val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=True, drop_last=True)
-#-------------------------------------------------------
-
+import h5py
+import copy
+import torch
+import random
+import torchvision
+import numpy as np
+import numpy as np
+from torch import nn
+from torch.optim import Adam
+from torchinfo import summary
+import torch.nn.functional as F
+import matplotlib.pyplot as plt
+from torch.utils.data import Subset
+from torch.optim import lr_scheduler
+from torch.utils.data import Dataset
+from torch.utils.data import ConcatDataset
+from torch.utils.tensorboard import SummaryWriter
+from torch.utils.data import DataLoader, TensorDataset, random_split
 
 
 #-------------------------------------------------------
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(str(device))
+file_path = "C:/Users/Seiven/Desktop/MY_MLmodels/ions2/binary/cropped_ions.h5"
+
+file_path_dark = "C:/Users/Seiven/Desktop/MY_MLmodels/ions2/binary/dark_ions.h5"
+file_path_bright = "C:/Users/Seiven/Desktop/MY_MLmodels/ions2/binary/bright_ions.h5"
+
+
+N = 4
+L_x = 5 
+L_y = 5
+N_i = L_x * L_y
+N_h = 256
+N_o = 1
 
 
 class IonImagesDataset(Dataset):
-    def __init__(self, file_path, ion_position):
-        with h5py.File(file_path, "r") as f:
-            self.keys = [key for key in f.keys() if f"ion_{ion_position}" in key]
-            self.images = [np.array(f[key]) for key in self.keys]
-            self.labels = [self.get_label(key) for key in self.keys]
+    def __init__(self, file_paths, labels, ion_positions=[0, 1, 2, 3]):
+        images = []
+        categories = []
+
+        for file_path, label in zip(file_paths, labels):
+            with h5py.File(file_path, "r") as f:
+                print(f"h5 file has {len(f.keys())} keys.")  # Print the number of keys
+
+                # # Get the unique image numbers from the keys
+                # image_numbers = [int(re.search(r'(\d+)_ion_0', key).group(1)) for key in f.keys()]
+                
+                image_number = 0
+                # while image_number<100:
+                while True:
+                    try:
+                        image_tensors = []
+                        for ion_position in ion_positions:
+                            key = f"{label}_{image_number}_ion_{ion_position}"
+                            ion_image = np.array(f[key])  # Load data as a numpy array
+                            ion_image_tensor = torch.tensor(ion_image, dtype=torch.float32).view(L_x, L_y) -200  # Reshape the tensor
+                            image_tensors.append(ion_image_tensor)
+
+                        # Concatenate the image tensors for all ion positions
+                        combined_image_tensor = torch.stack(image_tensors)
+                        images.append(combined_image_tensor[None,...])
+                        categories.append(torch.tensor([0,0,0,0],dtype=torch.float32)[:,None] if label == "dark" else torch.tensor([1,1,1,1],dtype=torch.float32)[:,None])
+                    
+                        image_number += 1
+                    except:
+                        break
+            
+        self.images = torch.concat(images,dim=0)
+        self.labels = torch.stack(categories)
+        print("Saving...")
+        torch.save(self.images, 'C:/Users/Seiven/Desktop/MY_MLmodels/ions2/binary/cropped_combined_images.pt')
+        torch.save(self.labels, 'C:/Users/Seiven/Desktop/MY_MLmodels/ions2/binary/cropped_combined_labels.pt')
+
+        print("Total images:", len(self.images))  # Debug print
+        print("Total labels:", len(self.labels))  # Debug print
+
+        print("Total images:", self.images.size())  # Debug print
+        print("Total labels:", self.labels.size())
 
     def __len__(self):
         return len(self.images)
 
     def __getitem__(self, idx):
-        images = [
-            torch.from_numpy(self.images[(idx + i) % len(self.images)]).float()
-            for i in range(4)
-        ]
-        images = torch.stack(images, dim=0)
-        return images, self.labels[idx] * torch.ones((4,1))
+        image_tensor = self.images[idx]  # Add a channel dimension
+        label_tensor = self.labels[idx] # Repeat the label for each ion position
+        return image_tensor, label_tensor
 
-    def get_label(self, key):
-        label = key.split("_")[0]
-        return 0 if label == "dark" else 1
 
-# Create datasets for each ion position
-datasets = [IonImagesDataset("C:/Users/Seiven/Desktop/MY_MLmodels/ions2/binary/cropped_ions.h5", i) for i in range(4)]
+writer = SummaryWriter('runs/ion_images_experiment')
 
-# Concatenate the datasets
-full_ds = ConcatDataset(datasets)
+file_paths = [file_path_dark, file_path_bright]
+labels = ["dark", "bright"]
+dataset = IonImagesDataset(file_paths, labels)
 
-# Split the full dataset into training and validation datasets
-val_ratio = 0.2
-train_size = int((1 - val_ratio) * len(full_ds))
-val_size = len(full_ds) - train_size
-train_ds, val_ds = random_split(full_ds, [train_size, val_size])
+# Split the dataset into training and validation subsets
+train_size = int(0.8 * len(dataset))
+val_size = len(dataset) - train_size
+print(f"Train size: {train_size}, Validation size: {val_size}")  # Print the sizes of subsets
+
+train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+
+print(f"Train dataset size: {len(train_dataset)}")  # Print the size of the train_dataset
+print(f"Validation dataset size: {len(val_dataset)}")  # Print the size of the val_dataset
 
 # Create DataLoaders for the training and validation datasets
-batch_size = 1000
-train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, drop_last=True)
-val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=True, drop_last=True)
-
-
-#---------------------------------------------------------------------------------------------
+batch_size = min(1000, len(train_dataset)) # or choose a smaller value
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=False)
+val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True, drop_last=False)
 
 
 class IndexDependentDense(nn.Module):
     def __init__(self, N, N_i, N_o, activation=nn.ReLU()):
         super().__init__()
         
-        self. N = N
+        self.N = N
         self.N_i = N_i
         self.N_o = N_o
         self.activation = activation
@@ -102,11 +129,6 @@ class IndexDependentDense(nn.Module):
         
         pass
     
-    # def _reset_parameters(self):
-    #     for p in self.parameters():
-    #         if p.dim() > 1:
-    #             nn.init.xavier_uniform_(p)
-    #     pass
     def _reset_parameters(self):
         nn.init.xavier_uniform_(self.W)
         nn.init.zeros_(self.b)
@@ -125,11 +147,11 @@ class Encoder(nn.Module):
     def __init__(self, N, N_i, N_o):
         super().__init__()
         
-        self. N = N
+        self.N = N
         self.N_i = N_i
         self.N_o = N_o
         
-        self.dense = IndexDependentDense(N, N_i, N_o, activation=None)
+        self.dense = IndexDependentDense(N, N_i, N_o, activation=nn.ReLU())
         pass
     
     def forward(self, x):
@@ -143,10 +165,10 @@ class Classifier(nn.Module):
     def __init__(self, N, N_i, N_o):
         super().__init__()
         
-        self. N = N
+        self.N = N
         self.N_i = N_i
         self.N_o = N_o
-        self.dense = IndexDependentDense(N, N_i, N_o, activation=F.sigmoid)
+        self.dense = IndexDependentDense(N, N_i, N_o, activation=None)
         pass
     def forward(self, x):
         y = self.dense(x)
@@ -160,7 +182,7 @@ class SharedEncoder(nn.Module):
     def __init__(self, N, N_i, N_o):
         super().__init__()
         
-        self. N = N
+        self.N = N
         self.N_i = N_i
         self.N_o = N_o
         
@@ -179,7 +201,7 @@ class SharedClassifier(nn.Module):
     def __init__(self, N, N_i, N_o):
         super().__init__()
         
-        self. N = N
+        self.N = N
         self.N_i = N_i
         self.N_o = N_o
         
@@ -236,83 +258,26 @@ class EnhancedMultiIonReadout(nn.Module):
         y = self.mir.classifier(y)
         return y
 
+from torch.utils.tensorboard import SummaryWriter
+
 device = torch.device("cpu")
-N = 4
-L_x = 5 
-L_y = 5
-N_i = L_x * L_y
-N_h = 256
-N_o = 1
 
 encoder = Encoder(N, N_i, N_h)
 classifier = Classifier(N, N_h, N_o)
 model = MultiIonReadout(encoder, classifier)
-enhanced_model = EnhancedMultiIonReadout(model)
+# enhanced_model = EnhancedMultiIonReadout(model)
 
+model = model.to(device)
 
-###############################################################
+# # Create a SummaryWriter
+# writer = SummaryWriter('runs/ion_images_experiment')
 
-# # Check the HDF5 file
-# with h5py.File("C:/Users/Seiven/Desktop/MY_MLmodels/ions2/binary/cropped_ions.h5", "r") as f:
-#     keys = [key for key in f.keys() if "ion_" in key]
-#     for key in keys[:5]:
-#         print(f"Key: {key}")
-#         data = f[key]
-#         print(f"Data shape: {data.shape}")
-#         label = 0 if key.split("_")[0] == "dark" else 1
-#         print(f"Label: {label}")
+# # Log model architecture (Optional)
+# images, _ = next(iter(train_loader))
+# writer.add_graph(model, images)
 
-# # Check the dataset
-dataset = IonImagesDataset("C:/Users/Seiven/Desktop/MY_MLmodels/ions2/binary/cropped_ions.h5", 0)
-# for i in range(5):  # Check the first 10 samples
-#     image, label = dataset[i]
-#     print(f"Image shape: {image.shape}, Label: {label}", sep=' ')
-
-# Check the data loader
-loader = DataLoader(dataset, batch_size=1000, shuffle=True, drop_last=True)
-# for images, labels in loader:
-#     print(f"Images shape: {images.shape}, Labels shape: {labels.shape}")
-#     if images.shape[0] != 1000 or labels.shape[0] != 1000:
-#         print("Warning: Batch size is not 1000. Check if your dataset size is a multiple of the batch size.")
-#     break  # Check only the first batch
-
-# # Check the label dimensions
-# for images, labels in loader:
-#     images, labels = images.to(device), labels.to(device)
-#     outputs = model(images)
-#     print(f"Outputs shape: {outputs.shape}, Labels shape: {labels.shape}")
-#     if outputs.shape != labels.shape:
-#         print("Warning: Mismatch between the dimensions of the labels and the model's output.")
-#     break  # Check only the first batch
-
-# # Try a smaller batch size
-# loader = DataLoader(dataset, batch_size=500, shuffle=True, drop_last=True)
-# for images, labels in loader:
-#     images, labels = images.to(device), labels.to(device)
-#     try:
-#         outputs = model(images)
-#         print("Batch size of 500 works fine.")
-#     except RuntimeError as e:
-#         print(f"Error with batch size of 500: {e}")
-#     break  # Check only the first batch
-
-def visualize_images(dataset, title):
-    fig, axes = plt.subplots(2, 2, figsize=(8, 8))
-    fig.suptitle(title)
-    axes = axes.flatten()  # Flatten the axes array
-    for i in range(4):
-        sample_idx = np.random.randint(len(dataset))
-        images, labels = dataset[sample_idx]
-        label = labels[0].item()  # Take the first element of the label tensor
-        axes[i].imshow(images[i].squeeze().numpy(), cmap='gray')
-        axes[i].set_title(f"Label: {label}")
-        axes[i].axis('off')
-    plt.show()
-
-##############################################################
-
-N_epochs = 50
-lr = 1e-4
+N_epochs = 100
+lr = 1e-3
 optimizer = Adam(model.parameters(), lr=lr)
 schedule_params = {"factor": 1}
 schedule = lr_scheduler.ConstantLR(optimizer, **schedule_params)
@@ -320,24 +285,33 @@ log_every = 1
 
 # Training loop
 for epoch in range(N_epochs):
-    for i, (inputs, labels) in enumerate(train_loader):
+
+    total_train_loss = 0
+    for (inputs, labels) in train_loader:
+    
         inputs, labels = inputs.to(device), labels.to(device)
-        
+
         optimizer.zero_grad()
         loss = model.bceloss(inputs, labels)
         loss.backward()
         optimizer.step()
 
-    if epoch % log_every == 0:
-        print(f"Epoch {epoch}/{N_epochs}, Loss: {loss.item()}")
+        # total_train_loss += loss.item()
+
+    # avg_train_loss = total_train_loss / len(train_loader)
+    
+    
+    
+    sys.stdout.flush()
+    # writer.add_scalar('Training Loss', avg_train_loss, epoch)
 
     # Evaluation loop
     with torch.no_grad():
         total_loss = 0
         total_accuracy = 0
-        for i, (inputs, labels) in enumerate(val_loader):
+        for inputs, labels in val_loader:
             inputs, labels = inputs.to(device), labels.to(device)
-            
+
             loss = model.bceloss(inputs, labels)
             accuracy = model.accuracy(inputs, labels)
             total_loss += loss.item()
@@ -345,4 +319,10 @@ for epoch in range(N_epochs):
 
         avg_loss = total_loss / len(val_loader)
         avg_accuracy = total_accuracy / len(val_loader)
-        print(f"Validation Loss: {avg_loss}, Validation Accuracy: {avg_accuracy}")
+        # writer.add_scalar('Validation Loss', avg_loss, epoch)
+        # writer.add_scalar('Validation Accuracy', avg_accuracy, epoch)
+        
+    print("\r Epoch {}/{}, Training Loss = {}, Val Loss = {}, Val Acc = {}".format(epoch+1, N_epochs, loss.item(), avg_loss, avg_accuracy), end="")
+    
+# Close the writer
+# writer.close()
