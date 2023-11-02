@@ -75,11 +75,6 @@ class IonImagesDataset(Dataset):
         torch.save(self.images, 'C:/Users/Seiven/Desktop/MY_MLmodels/ions2/binary/cropped_combined_images.pt')
         torch.save(self.labels, 'C:/Users/Seiven/Desktop/MY_MLmodels/ions2/binary/cropped_combined_labels.pt')
 
-        print("Total images:", len(self.images))  # Debug print
-        print("Total labels:", len(self.labels))  # Debug print
-
-        print("Total images:", self.images.size())  # Debug print
-        print("Total labels:", self.labels.size())
 
     def __len__(self):
         return len(self.images)
@@ -323,6 +318,4 @@ for epoch in range(N_epochs):
         # writer.add_scalar('Validation Accuracy', avg_accuracy, epoch)
         
     print("\r Epoch {}/{}, Training Loss = {}, Val Loss = {}, Val Acc = {}".format(epoch+1, N_epochs, loss.item(), avg_loss, avg_accuracy), end="")
-    
-# Close the writer
-# writer.close()
+
