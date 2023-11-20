@@ -2,11 +2,11 @@ import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 
-fn = 'img.h5'
+fn = r'C:\Users\Seiven\Desktop\MY_MLmodels\ions2\binary\cropped_ions.h5'
 f = h5py.File(fn)
 
 # Define the list of dataset keys to plot
-dataset_keys = ['halfpi_0', 'halfpi_10', 'dark_1340', 'dark_1341', 'bright_1342', 'halfpi_1226', 'halfpi_1229', 'halfpi_1225', 'halfpi_1259', 'bright_1000', 'bright_0']
+dataset_keys = ['dark_0', 'dark_10', 'dark_1340', 'dark_1341', 'dark_1342', 'dark_1226', 'dark_1229', 'dark_1225', 'dark_1259', 'dark_1000', 'dark_0']
 
 # Create a grid of subplots with 3 rows and 4 columns
 fig, axs = plt.subplots(3, 4, figsize=(12, 8), sharex=True, sharey=True)
