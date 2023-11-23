@@ -19,3 +19,4 @@ def visualize_category(file_path, category, num_samples=10):
 # Example usage for the "halfpi" category:
 file_path = "C:/Users/Seiven/Desktop/MY_MLmodels/ions2/binary/cropped_ions.h5"
 visualize_category(file_path, "halfpi")
+# fighting for my life to fix the problem 
