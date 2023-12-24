@@ -1,4 +1,7 @@
 # ions2
+
+
+Apply Vasia suggestion to this project 
 Creation of FFNN for trapped ions state classification 
 exlanation:
 What do we do in ionsFNNv2.py:

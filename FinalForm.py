@@ -27,83 +27,48 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 ic(f"Your current device: {str(device)}")
 #file_path = "/binary/cropped_ions.h5"
 
-file_path_dark = "/binary/dark_ions.h5"
-file_path_bright = "/binary/bright_ions.h5"
-file_path_halfpi = "/binary/halfpi.pt"
-file_path_halfpi_h5 = "/binary/halfpi_ions.h5"
+# file_path_dark = "/binary/dark_ions.h5"
+# file_path_bright = "/binary/bright_ions.h5"
+# file_path_halfpi = "/binary/halfpi.pt"
+file_path = "binary/halfpi.pt"
 
 
 num_images = 4
 pixel_width = 5 
 pixel_height = 5
 total_pixels = pixel_width * pixel_height
-hidden_layer_size = 256
+hidden_layer_size = 512  # Adjusted to match the saved model
 output_size = 1
 
 
 class IonImagesDataset(Dataset):
-    def __init__(self, file_paths, labels=None, ion_positions=[0, 1, 2, 3]):
-        images = []
-        categories = []
+    def __init__(self, file_path):
+        loaded_data_dict = torch.load(file_path) # loading dataset into dataloader
+        ic(loaded_data_dict.keys())
 
-        with h5py.File(file_path_halfpi_h5, "r") as f:
-                ic(f"h5 file has {len(f.keys())} keys.")  # Print the number of keys
-                ic(f"h5 file has {f.keys()} keys.")
-
-                # # Get the unique image numbers from the keys
-                # image_numbers = [int(re.search(r'(\d+)_ion_0', key).group(1)) for key in f.keys()]
-                
-                image_number = 0
-                # while image_number<100:
-                while True:
-                    try:
-                        image_tensors = []
-                        for ion_position in ion_positions:
-                            key = f"{image_number}_ion_{ion_position}"
-                            ion_image = np.array(f[key])  # Load data as a numpy array
-                            ion_image_tensor = torch.tensor(ion_image, dtype=torch.float32).view(pixel_width, pixel_height) - 200
-                            image_tensors.append(ion_image_tensor)
-
-                        combined_image_tensor = torch.stack(image_tensors)
-                        images.append(combined_image_tensor[None, ...])
-                        # Assuming labels are not available for halfpi data
-                        categories.append(torch.tensor([0, 0, 0, 0], dtype=torch.float32)[:, None])  # Placeholder labels
-
-                        image_number += 1
-                    except:
-                        break
-            
-        self.images = torch.concat(images, dim=0)
-        self.labels = torch.stack(categories)
-
-        ic("Total images:", len(self.images))  # Debug print
-        ic("Total labels:", len(self.labels))  
-
-        ic("Total images:", self.images.size())  
-        ic("Total labels:", self.labels.size())
+        self.images = loaded_data_dict['images'] # creating of 2 datasents of imgages and keys to them
+        self.labels = loaded_data_dict['labels']
 
     def __len__(self):
-        return len(self.images)
+        return len(self.images) # just return len function
 
     def __getitem__(self, idx):
         image_tensor = self.images[idx]  # Add a channel dimension
         label_tensor = self.labels[idx] # Repeat the label for each ion position
+        ic(image_tensor.shape, label_tensor.shape)
         return image_tensor, label_tensor
-
-
+        
 #writer = SummaryWriter('runs/ion_images_experiment')
 
-file_path_halfpi_h5 = "/binary/halfpi_ions.h5"
-
 # Create dataset
-halfpi_dataset = IonImagesDataset(file_path_halfpi_h5)
+dataset = IonImagesDataset(file_path)
 
 # Split the dataset into training and validation subsets
-train_size = int(0.8 * len(halfpi_dataset))
-val_size = len(halfpi_dataset) - train_size
+train_size = int(0.8 * len(dataset))
+val_size = len(dataset) - train_size
 print(f"Train size: {train_size}, Validation size: {val_size}")
 
-train_dataset, val_dataset = random_split(halfpi_dataset, [train_size, val_size])
+train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
 # Create DataLoaders for the training and validation datasets
 batch_size = min(1000, len(train_dataset))
@@ -142,76 +107,102 @@ class IndexDependentDense(nn.Module):
 
 #---------------------------------------------------------------------------------------------
 
-class Encoder(nn.Module):
-    def __init__(self, num_images, total_pixels, output_size):
-        super().__init__()
+# class Encoder(nn.Module):
+#     def __init__(self, num_images, total_pixels, output_size):
+#         super().__init__()
         
-        self.num_images = num_images
-        self.total_pixels = total_pixels
-        self.output_size = output_size
+#         # self.num_images = num_images
+#         # self.total_pixels = total_pixels
+#         # self.output_size = output_size
         
-        self.dense = IndexDependentDense(num_images, total_pixels, output_size, activation=nn.ReLU())
-        pass
+#         self.dense = IndexDependentDense(num_images, total_pixels, output_size, activation=nn.ReLU())
+#         pass
     
-    def forward(self, x):
-        y = self.dense(x)
-        return y
-    pass
+#     def forward(self, x):
+#         y = self.dense(x)
+#         return y
+#     pass
 
-#---------------------------------------------------------------------------------------------
+# #---------------------------------------------------------------------------------------------
 
-class Classifier(nn.Module):
-    def __init__(self, num_images, total_pixels, output_size):
-        super().__init__()
+# class Classifier(nn.Module):
+#     def __init__(self, num_images, total_pixels, output_size):
+#         super().__init__()
         
-        self.num_images = num_images
-        self.total_pixels = total_pixels
-        self.output_size = output_size
-        self.dense = IndexDependentDense(num_images, total_pixels, output_size, activation=None)
-        pass
-    def forward(self, x):
-        y = self.dense(x)
-        y = torch.sigmoid(y)  # Apply sigmoid activation here
-        return y
-    pass
+#         self.num_images = num_images
+#         self.total_pixels = total_pixels
+#         self.output_size = output_size
+#         self.dense = IndexDependentDense(num_images, total_pixels, output_size, activation=None)
+#         pass
+#     def forward(self, x):
+#         y = self.dense(x)
+#         y = torch.sigmoid(y)  # Apply sigmoid activation here
+#         return y
+#     pass
 
-#---------------------------------------------------------------------------------------------
+# #---------------------------------------------------------------------------------------------
 
-class SharedEncoder(nn.Module):
-    def __init__(self, num_images, total_pixels, output_size):
-        super().__init__()
+# class SharedEncoder(nn.Module):
+#     def __init__(self, num_images, total_pixels, output_size):
+#         super().__init__()
         
-        self.num_images = num_images
-        self.total_pixels = total_pixels
-        self.output_size = output_size
+#         self.num_images = num_images
+#         self.total_pixels = total_pixels
+#         self.output_size = output_size
         
-        self.dense = nn.Linear(total_pixels, output_size)
-        pass
+#         self.dense = nn.Linear(total_pixels, output_size)
+#         pass
         
-    def forward(self, x):
-        y = self.dense(x)
-        return y
+#     def forward(self, x):
+#         y = self.dense(x)
+#         return y
     
-    pass
+#     pass
    
 #---------------------------------------------------------------------------------------------    
-        
-class SharedClassifier(nn.Module):
-    def __init__(self, num_images, total_pixels, output_size):
+##############################################################################################
+class Encoder(nn.Module):
+    def __init__(self):
         super().__init__()
-        
-        self.num_images = num_images
-        self.total_pixels = total_pixels
-        self.output_size = output_size
-        
-        self.dense = nn.Linear(total_pixels, output_size)
-        pass
-    
+        self.dense = IndexDependentDense(num_images=4, total_pixels=25, output_size=256, activation=nn.ReLU())
+
     def forward(self, x):
-        y = self.dense(x)
-        return y
+        return self.dense(x)
+
+class Classifier(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.dense = IndexDependentDense(num_images=4, total_pixels=512, output_size=1, activation=None)
+
+    def forward(self, x):
+        return torch.sigmoid(self.dense(x))
+
+class SharedEncoder(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.dense = nn.Linear(25, 256)
+
+    def forward(self, x):
+        return self.dense(x)
+##############################################################################################
+
+        
+# class SharedClassifier(nn.Module):
+#     def __init__(self, num_images, total_pixels, output_size):
+#         super().__init__()
+        
+#         self.num_images = num_images
+#         self.total_pixels = total_pixels
+#         self.output_size = output_size
+        
+#         self.dense = nn.Linear(total_pixels, output_size)
+#         pass
     
-    pass
+#     def forward(self, x):
+#         y = self.dense(x)
+#         return y
+    
+#     pass
 
 #---------------------------------------------------------------------------------------------
 
@@ -300,13 +291,17 @@ def msedistloss(self, preds):
 
 device = torch.device("cpu")
 
-encoder = Encoder(num_images, total_pixels, hidden_layer_size)
-classifier = Classifier(num_images, hidden_layer_size, output_size)
+# encoder = Encoder(num_images, total_pixels, hidden_layer_size)
+# classifier = Classifier(num_images, hidden_layer_size, output_size)
+# model = MultiIonReadout(encoder, classifier)
+encoder = Encoder()
+classifier = Classifier()
 model = MultiIonReadout(encoder, classifier)
+shared_encoder = SharedEncoder()
 enhanced_model = EnhancedMultiIonReadout(model)
 
 
-model_path = "/golden_WandB.pth"
+model_path = "golden_WandB.pth"
 model.load_state_dict(torch.load(model_path))
 model = model.to(device)
 
