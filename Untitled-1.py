@@ -53,8 +53,8 @@ class IonImagesDataset(Dataset):
         return image_tensor, label_tensor
 
 #writer = SummaryWriter('runs/ion_images_experiment')
-file_path_pt = r'C:\Users\Seiven\Desktop\MY_MLmodels\ions2\binary\labels_and_images.pt'
-halfpi_file_path_pt = r'C:\Users\Seiven\Desktop\MY_MLmodels\ions2\binary\halfpi.pt'
+file_path_pt = 'C:\Users\Seiven\Desktop\MY_MLmodels\ions2\binary\labels_and_images.pt'
+halfpi_file_path_pt = 'C:\Users\Seiven\Desktop\MY_MLmodels\ions2\binary\halfpi.pt'
 
 dataset = IonImagesDataset(file_path_pt) 
 halfpi_dataset = IonImagesDataset(file_path_pt)

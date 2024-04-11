@@ -1,25 +1,11 @@
-from collections import Counter
-import sys
-import re
-import h5py
-from icecream import ic
-import copy
-from sklearn.metrics import mean_squared_error
 import torch
-import random
-import torchvision
+import torch.nn as nn
+import icecream as ic
+from torch.optim import Adam, lr_scheduler
+from torch.utils.data import Dataset, DataLoader, random_split
+from torch.nn import functional as F
 import numpy as np
-import numpy as np
-from torch import nn
-from torch.optim import Adam
-from torchinfo import summary
-import torch.nn.functional as F
-import matplotlib.pyplot as plt
-from torch.utils.data import Subset
-from torch.optim import lr_scheduler
-from torch.utils.data import Dataset
-from torch.utils.data import ConcatDataset
-from torch.utils.data import DataLoader, TensorDataset, random_split
+from collections import Counter
 
 
 #-------------------------------------------------------
@@ -301,9 +287,9 @@ shared_encoder = SharedEncoder()
 enhanced_model = EnhancedMultiIonReadout(model)
 
 
-model_path = "golden_WandB.pth"
-model.load_state_dict(torch.load(model_path))
-model = model.to(device)
+# model_path = "golden_WandB.pth"
+# model.load_state_dict(torch.load(model_path))
+# model = model.to(device)
 
 
 # # Create a SummaryWriter

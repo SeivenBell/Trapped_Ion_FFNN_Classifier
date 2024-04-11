@@ -133,7 +133,7 @@ for learning_rate in hyperparameter_grid['learning_rate']:
             criterion = nn.CrossEntropyLoss()
 
 
-data_file_path = 'C:/Users/Seiven/Desktop/MY_MLmodels/ions2/binary/cropped_ions.h5'
+data_file_path = 'binary/cropped_ions.h5'
 dataset = IonDataset(data_file_path)
 train_size = int(0.8 * len(dataset))
 val_size = len(dataset) - train_size
