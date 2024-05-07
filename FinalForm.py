@@ -151,14 +151,14 @@ class Encoder(nn.Module):
     def __init__(self):
         super().__init__()
         self.dense = IndexDependentDense(num_images=4, total_pixels=25, output_size=256, activation=nn.ReLU())
-
+# num_ion  
     def forward(self, x):
         return self.dense(x)
 
 class Classifier(nn.Module):
     def __init__(self):
         super().__init__()
-        self.dense = IndexDependentDense(num_images=4, total_pixels=512, output_size=1, activation=None)
+        self.dense = IndexDependentDense(num_images=4, total_pixels=256, output_size=1, activation=None)
 
     def forward(self, x):
         return torch.sigmoid(self.dense(x))
@@ -280,12 +280,11 @@ device = torch.device("cpu")
 # encoder = Encoder(num_images, total_pixels, hidden_layer_size)
 # classifier = Classifier(num_images, hidden_layer_size, output_size)
 # model = MultiIonReadout(encoder, classifier)
-encoder = Encoder()
-classifier = Classifier()
-model = MultiIonReadout(encoder, classifier)
-shared_encoder = SharedEncoder()
-enhanced_model = EnhancedMultiIonReadout(model)
-
+# encoder = Encoder()
+# classifier = Classifier()
+# model = MultiIonReadout(encoder, classifier)
+# shared_encoder = SharedEncoder()
+# enhanced_model = EnhancedMultiIonReadout(model)
 
 # model_path = "golden_WandB.pth"
 # model.load_state_dict(torch.load(model_path))
@@ -299,53 +298,53 @@ enhanced_model = EnhancedMultiIonReadout(model)
 # images, _ = next(iter(train_loader))
 # writer.add_graph(model, images)
 
-N_epochs = 100
-lr = 1e-3
-optimizer = Adam(model.parameters(), lr=lr)
-schedule_params = {"factor": 1}
-schedule = lr_scheduler.ConstantLR(optimizer, **schedule_params)
-log_every = 1
+# N_epochs = 100
+# lr = 1e-3
+# optimizer = Adam(model.parameters(), lr=lr)
+# schedule_params = {"factor": 1}
+# schedule = lr_scheduler.ConstantLR(optimizer, **schedule_params)
+# log_every = 1
 
-# Training loop
-for epoch in range(N_epochs):
+# # Training loop
+# for epoch in range(N_epochs):
 
-    total_train_loss = 0
+#     total_train_loss = 0
     
-    for (inputs, _) in train_loader:
-        inputs = inputs.to(device)
+#     for (inputs, _) in train_loader:
+#         inputs = inputs.to(device)
 
-        optimizer.zero_grad()
-        preds = model(inputs)
+#         optimizer.zero_grad()
+#         preds = model(inputs)
 
-        # Compute loss for unlabeled data
-        loss = model.msedistloss(preds)
-        loss.backward()
-        optimizer.step()
+#         # Compute loss for unlabeled data
+#         loss = model.msedistloss(preds)
+#         loss.backward()
+#         optimizer.step()
 
-        # total_train_loss += loss.item()
+#         # total_train_loss += loss.item()
 
-    # avg_train_loss = total_train_loss / len(train_loader)
+#     # avg_train_loss = total_train_loss / len(train_loader)
     
     
     
-    sys.stdout.flush()
-    # writer.add_scalar('Training Loss', avg_train_loss, epoch)
+#     sys.stdout.flush()
+#     # writer.add_scalar('Training Loss', avg_train_loss, epoch)
 
-    # Evaluation loop
-    with torch.no_grad():
-        total_loss = 0
-        total_accuracy = 0
-        for inputs, labels in val_loader:
-            inputs, labels = inputs.to(device), labels.to(device)
+#     # Evaluation loop
+#     with torch.no_grad():
+#         total_loss = 0
+#         total_accuracy = 0
+#         for inputs, labels in val_loader:
+#             inputs, labels = inputs.to(device), labels.to(device)
 
-            loss = model.bceloss(inputs, labels)
-            accuracy = model.accuracy(inputs, labels)
-            total_loss += loss.item()
-            total_accuracy += accuracy.item()
+#             loss = model.bceloss(inputs, labels)
+#             accuracy = model.accuracy(inputs, labels)
+#             total_loss += loss.item()
+#             total_accuracy += accuracy.item()
 
-        avg_loss = total_loss / len(val_loader)
-        avg_accuracy = total_accuracy / len(val_loader)
-        # writer.add_scalar('Validation Loss', avg_loss, epoch)
-        # writer.add_scalar('Validation Accuracy', avg_accuracy, epoch)
+#         avg_loss = total_loss / len(val_loader)
+#         avg_accuracy = total_accuracy / len(val_loader)
+#         # writer.add_scalar('Validation Loss', avg_loss, epoch)
+#         # writer.add_scalar('Validation Accuracy', avg_accuracy, epoch)
         
-    ic("\r Epoch {}/{}, Training Loss = {}, Val Loss = {}, Val Acc = {}".format(epoch+1, N_epochs, loss.item(), avg_loss, avg_accuracy), end="")
+#     ic("\r Epoch {}/{}, Training Loss = {}, Val Loss = {}, Val Acc = {}".format(epoch+1, N_epochs, loss.item(), avg_loss, avg_accuracy), end="")
