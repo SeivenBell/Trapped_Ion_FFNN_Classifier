@@ -31,7 +31,8 @@ from torch.utils.data import DataLoader, Dataset, random_split
 from torchinfo import summary
 
 import h5py
-import optuna
+
+# import optuna
 
 import copy
 
@@ -87,7 +88,7 @@ class Unlabelled_Dataset(Dataset):
 
 # Load full dataset
 full_dataset_path = "binary/fully_reformatted_dataset_standardized.h5"
-
+# full_dataset_path = r"C:\Users\Seiven\Desktop\UW\MY_MLmodels\ION_Classifier\binary\combined_labelled_data.h5"
 full_dataset = Labelled_Dataset(full_dataset_path)
 print(len(full_dataset))
 data, labels = full_dataset[0]  # Get the first sample from the dataset
@@ -100,7 +101,7 @@ val_size = len(full_dataset) - train_size
 
 train_dataset, val_dataset = random_split(full_dataset, [train_size, val_size])
 
-batch_size = 200
+batch_size = 250
 train_loader = DataLoader(
     train_dataset,
     batch_size=batch_size,
@@ -114,6 +115,7 @@ val_loader = DataLoader(
 
 # Load halfpi dataset
 halfpi_dataset_path = "binary/fully_reformatted_dataset_halfpi_standardized.h5"
+# halfpi_dataset_path = r"C:\Users\Seiven\Desktop\UW\MY_MLmodels\ION_Classifier\binary\combined_halfpi_data.h5"
 halfpi_dataset = Unlabelled_Dataset(halfpi_dataset_path)
 print(len(halfpi_dataset))  # PRINT
 data = halfpi_dataset[0]  # Get the first sample from the dataset
@@ -402,7 +404,7 @@ print("")
 
 ########################################################################################
 
-N_epochs = 5
+N_epochs = 25
 lr = 0.0003512337837381173  # Best hyperparameters:  {'lr': 0.0003912337837381173}
 optimizer = Adam(model.parameters(), lr=lr)
 schedule_params = {"factor": 1}
@@ -490,7 +492,7 @@ print("")
 
 ########################################################################################
 
-N_epochs = 5
+N_epochs = 15
 lr = 0.00016388181712790806  # was 1e-3
 weight_decay = 5.6547937254492916e-5  # 4.6
 optimizer = Adam(enhanced_model.parameters(), lr=lr, weight_decay=weight_decay)
@@ -557,9 +559,8 @@ for epoch in range(N_epochs):
         )
         sys.stdout.flush()
 
-################################################################################################
-import torch
-import matplotlib.pyplot as plt
+save_model = r"C:\Users\Seiven\Desktop\UW\MY_MLmodels\ION_Classifier\outputs_dir\local_enchanthed_model.pth"
+torch.save(model.state_dict(), save_model)
 
 # Ensure halfpi_data is defined correctly before this part
 halfpi_data = torch.stack([halfpi_dataset[i] for i in range(len(halfpi_dataset))]).to(
@@ -615,35 +616,35 @@ def filter_and_compute_mean(data, model, states):
     return mean_images
 
 
-states = ["0011", "0101", "1010", "0110", "1001", "1100"]
-mean_images = filter_and_compute_mean(halfpi_data, enhanced_model, states)
+# states = ["0011", "0101", "1010", "0110", "1001", "1100"]
+# mean_images = filter_and_compute_mean(halfpi_data, enhanced_model, states)
 
-# Plotting the mean images
-fig, axes = plt.subplots(2, 3, figsize=(15, 10))
+# # Plotting the mean images
+# fig, axes = plt.subplots(2, 3, figsize=(15, 10))
 
-for idx, state in enumerate(states):
-    ax = axes[idx // 3, idx % 3]
-    mean_image = mean_images[state]
-    if mean_image is not None:
-        # Debugging: Print the state and mean image before plotting
-        print(f"Plotting state {state} with mean image shape: {mean_image.shape}")
+# for idx, state in enumerate(states):
+#     ax = axes[idx // 3, idx % 3]
+#     mean_image = mean_images[state]
+#     if mean_image is not None:
+#         # Debugging: Print the state and mean image before plotting
+#         print(f"Plotting state {state} with mean image shape: {mean_image.shape}")
 
-        # Concatenate 4 separate images into one state and plot it
-        concatenated_image = mean_image.reshape(20, 5)
-        ax.imshow(concatenated_image, cmap="viridis", aspect="auto")
-        ax.set_title(f"{state}")
-    else:
-        ax.set_title(f"No matching images for State {state}")
+#         # Concatenate 4 separate images into one state and plot it
+#         concatenated_image = mean_image.reshape(20, 5)
+#         ax.imshow(concatenated_image, cmap="viridis", aspect="auto")
+#         ax.set_title(f"{state}")
+#     else:
+#         ax.set_title(f"No matching images for State {state}")
 
-fig.tight_layout()
-plt.show()
+# fig.tight_layout()
+# plt.show()
 
-# Optional: print the indices of selected images for further debugging
-for state in states:
-    if mean_images[state] is not None:
-        print(f"State {state} has mean image with shape: {mean_images[state].shape}")
-    else:
-        print(f"No images found for state {state}")
+# # Optional: print the indices of selected images for further debugging
+# for state in states:
+#     if mean_images[state] is not None:
+#         print(f"State {state} has mean image with shape: {mean_images[state].shape}")
+#     else:
+#         print(f"No images found for state {state}")
 
 
 ################################################################################################
