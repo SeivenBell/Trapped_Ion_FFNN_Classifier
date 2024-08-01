@@ -1,22 +1,14 @@
-# config.py
-BATCH_SIZE = 200
-N_EPOCHS = 20
-LR = 1e-4
-WEIGHT_DECAY = 5e-5
-LOG_EVERY = 1
-DEVICE = "cpu"
-
-N_epochs = 5
-lr = 0.0003512337837381173  # Best hyperparameters:  {'lr': 0.0003912337837381173}
-optimizer = Adam(model.parameters(), lr=lr)
-schedule_params = {"factor": 1}
-schedule = lr_scheduler.ConstantLR(optimizer, **schedule_params)
-log_every = 1
-
-N_epochs = 5
-lr = 0.00016388181712790806  # was 1e-3
-weight_decay = 5.6547937254492916e-5  # 4.6
-optimizer = Adam(enhanced_model.parameters(), lr=lr, weight_decay=weight_decay)
-schedule_params = {"factor": 1}
-schedule = lr_scheduler.ConstantLR(optimizer, **schedule_params)
-log_every = 1
+config = {
+    "full_dataset_path": r"C:\Users\Seiven\Desktop\UW\MY_MLmodels\ION_Classifier\binary\fully_reformatted_dataset_standardized.h5",
+    "halfpi_dataset_path": r"C:\Users\Seiven\Desktop\UW\MY_MLmodels\ION_Classifier\binary\fully_reformatted_dataset_halfpi_standardized.h5",
+    "batch_size": 250,
+    "val_ratio": 0.2,
+    "train_params": {"N_epochs": 25, "lr": 0.0003512337837381173},
+    "enhanced_train_params": {
+        "N_epochs": 15,
+        "lr": 0.00016388181712790806,
+        "weight_decay": 5.6547937254492916e-5,
+    },
+    "device": "cpu",
+    "log_every": 1,
+}

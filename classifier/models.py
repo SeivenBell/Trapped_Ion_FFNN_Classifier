@@ -1,3 +1,10 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.nn import Module
+import copy
+
+
 class IndexDependentDense(Module):
     def __init__(self, N, N_i, N_o, activation=nn.ReLU()):
         super().__init__()

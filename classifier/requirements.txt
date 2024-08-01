@@ -1,0 +1,6 @@
+numpy
+matplotlib
+seaborn
+torch
+torchinfo
+h5py

@@ -61,7 +61,6 @@ class Labelled_Dataset(Dataset):
 
     def __getitem__(self, idx):
         x = torch.tensor(self.measurements[idx])
-        # x = x - 200  # Subtracting 200 as in the original code
         y = torch.tensor(self.labels[idx])
         return x, y
 
@@ -217,7 +216,11 @@ class Classifier(Module):
         self.N_o = N_o
 
         self.dense = IndexDependentDense(
-            N, N_i, N_o, activation=lambda x: F.log_softmax(x, dim=-1)
+            # accuracy of out preditions
+            N,
+            N_i,
+            N_o,
+            activation=lambda x: F.log_softmax(x, dim=-1),
         )
         pass
 
@@ -269,6 +272,7 @@ class AbstractMultiIonReadout(Module):
         pass
 
     def classify(self, x):
+        # accuracy of our predictions
         return F.gumbel_softmax(logits=self(x), tau=1, hard=True)[..., -1:]
 
     def nllloss(self, x, y):
