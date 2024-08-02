@@ -1,4 +1,5 @@
 /binary
-/old
-/micro_moves
 /runs
+/_pycache_
+/.idea
+/.vscode

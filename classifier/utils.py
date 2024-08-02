@@ -1,6 +1,8 @@
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+import h5py
+import os
 
 def plot_nn_performance(enhanced_model, model, halfpi_data, N):
     # Calculate counts
@@ -93,3 +95,23 @@ def plot_nn_performance(enhanced_model, model, halfpi_data, N):
     print(
         f"Sum of distances to uniform distribution (Original Model): {sum_dist_original:.4f}"
     )
+
+
+def check_dataset(file_path):
+    """Check if the dataset file exists and return its shape."""
+    if not os.path.exists(file_path):
+        print(f"Error: Dataset file {file_path} not found.")
+        return None
+
+    with h5py.File(file_path, "r") as f:
+        measurements_shape = f["measurements"].shape
+        labels_shape = f["labels"].shape if "labels" in f else None
+
+    print(f"Dataset found at {file_path}")
+    print(f"Measurements shape: {measurements_shape}")
+    if labels_shape:
+        print(f"Labels shape: {labels_shape}")
+    else:
+        print("This dataset does not contain labels.")
+
+    return measurements_shape, labels_shape
