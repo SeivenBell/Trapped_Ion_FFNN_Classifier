@@ -1,6 +1,6 @@
 config = {
-    "full_dataset_path": r"C:\Users\Seiven\Desktop\UW\MY_MLmodels\ION_Classifier\binary\combined_labelled_data.h5",
-    "halfpi_dataset_path": r"C:\Users\Seiven\Desktop\UW\MY_MLmodels\ION_Classifier\binary\combined_halfpi_data.h5",
+    "full_dataset_path": r"/home/seiven/Documents/Github/Trapped_Ion_FFNN_Classifier/binary/combined_labelled_data.h5",
+    "halfpi_dataset_path": r"/home/seiven/Documents/Github/Trapped_Ion_FFNN_Classifier/binary/combined_halfpi_data.h5",
     "batch_size": 250,
     "val_ratio": 0.2,
     "train_params": {"N_epochs": 25, "lr": 0.0003512337837381173},

@@ -211,7 +211,6 @@ classifier = Classifier(N, N_h, N_o)
 model = MultiIonReadout(encoder, classifier)
 
 
-
 #################################################################################################################
 # Load the pre-trained model weights
 model_path = "outputs_dir/local_enchanthed_model.pth"
