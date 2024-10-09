@@ -11,6 +11,7 @@ from models import (
 from train import train_model, train_enhanced_model
 from config import config
 from utils import plot_nn_performance, check_dataset
+from torchviz import make_dot
 
 
 def main():
@@ -136,6 +137,12 @@ def main():
         [halfpi_dataset[i] for i in range(len(halfpi_dataset))]
     ).to(config["device"])
     plot_nn_performance(enhanced_model, model, halfpi_data, N)
+
+    sample_input = torch.randn(1, N, N_i)
+    output = model(sample_input)
+    dot = make_dot(output, params=dict(list(model.named_parameters())))
+    dot.format = "png"
+    dot.render("model_architecture")
 
 
 if __name__ == "__main__":
