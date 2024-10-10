@@ -91,7 +91,10 @@ def main():
     print(f"\nTest Accuracy: {test_sia:.3f}")
 
     # Enhance the model with Coupler
+    # We use coupler to train it and we use frozen 
+    # model extract individual ion statesfeatures
     coupler = Coupler(N, N_h)
+    
     enhanced_model = EnhancedMultiIonReadout(model, coupler)
 
     # Prepare the halfpi dataset loaders
