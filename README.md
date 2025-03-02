@@ -4,8 +4,6 @@
 
 This project implements a novel neural network architecture for classifying quantum states in trapped ions using fluorescence images. The model employs both supervised and semi-supervised learning approaches to achieve high classification accuracy while reducing dependence on manually labeled data.
 
-![Neural Network Architecture](model_architecture.png)
-
 ## Key Features
 
 - **Custom Neural Network Architecture**: An encoder-decoder structure with index-dependent dense layers tailored for ion state processing
